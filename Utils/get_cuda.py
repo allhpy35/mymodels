@@ -13,37 +13,38 @@ def get_gpuinfo(
         print("Execution device set to CPU.")
         return
 
-    print('####################  GPU INFO  ##########################')
-    print('Available GPU count is : ', torch.cuda.device_count())
-    print('Selected GPU is : ', torch.cuda.get_device_name(device.index))
+    idx = device.index
 
-    # =========================
-    # GPU 정보 출력
-    # Collect GPU properties
-    # =========================
-    props = torch.cuda.get_device_properties(device.index)
+    print('####################  GPU INFO  ##########################')
+    print('Available GPU count :', torch.cuda.device_count())
+    print('Selected GPU        :', torch.cuda.get_device_name(idx))
+
+    # ---- GPU properties ----
+    props = torch.cuda.get_device_properties(idx)
     total_mem_mb = props.total_memory / 1024 ** 2
+
+    # ---- This process usage ----
     allocated_mb = torch.cuda.memory_allocated(device) / 1024 ** 2
     reserved_mb = torch.cuda.memory_reserved(device) / 1024 ** 2
-    free_estimated_mb = total_mem_mb - reserved_mb
 
+    # ---- REAL GPU usage (like nvidia-smi) ----
+    free_b, total_b = torch.cuda.mem_get_info(device)
+    free_real_mb = free_b / 1024 ** 2
+    total_real_mb = total_b / 1024 ** 2
+    used_real_mb = total_real_mb - free_real_mb
 
-    # Print memory usage
     print(f"[Device] Using {device}")
-    print(f"  ├─ Name        : {props.name}")
-    print(f"  ├─ Total memory: {total_mem_mb:.1f} MB")
-    print(f"  ├─ Reserved    : {reserved_mb:.1f} MB")
-    print(f"  ├─ Allocated   : {allocated_mb:.1f} MB")
-    print(f"  └─ Free (est.) : {free_estimated_mb:.1f} MB")
+    print(f"  ├─ Name                : {props.name}")
+    print(f"  ├─ Total memory        : {total_mem_mb:.1f} MB")
+    print(f"  ├─ Used (GPU total)    : {used_real_mb:.1f} MB")
+    print(f"  ├─ Free  (GPU total)   : {free_real_mb:.1f} MB")
+    print(f"  ├─ Reserved (process)  : {reserved_mb:.1f} MB")
+    print(f"  └─ Allocated(process) : {allocated_mb:.1f} MB")
 
-    # =========================
-    # 최소 메모리 조건 검사
-    # Optional minimum free memory check
-    # =========================
     if min_free_mem_mb is not None:
-        if free_estimated_mb < min_free_mem_mb:
+        if free_real_mb < min_free_mem_mb:
             print(f"[Warning] Not enough free GPU memory "
-                  f"({free_estimated_mb:.1f} MB < {min_free_mem_mb} MB)")
+                  f"({free_real_mb:.1f} MB < {min_free_mem_mb} MB)")
 
     print('###########################################################')
 

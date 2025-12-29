@@ -21,7 +21,7 @@ from Utils.get_cuda import get_cuda
 
 def main():
     print('hello world')
-    get_cuda()
+    get_cuda('cuda:1', True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
